@@ -1,0 +1,106 @@
+name: Frontend Continuous Deployment
+
+on:  
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - frontend  
+      
+env:
+  NODE_VERSION: 16.9.0
+  REACT_APP_MOVIE_API_URL: http://localhost:5000
+
+
+jobs: 
+  
+  lint_job:
+    
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js 
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          #cache: 'npm'
+          cache-dependency-path: "/home/runner/work/Udacity_Movie/Udacity_Movie/startet/frontend/package-lock.json"
+
+
+      - name: Install dependencies
+        run: cd starter/frontend && npm ci
+       
+
+      - name: Run linter
+      - run: cd starter/frontend && npm run lint
+
+      
+  test_job:
+
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js 
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          #cache: 'npm'
+          cache-dependency-path: "/home/runner/work/Udacity_Movie/Udacity_Movie/startet/frontend/package-lock.json"
+
+      - name: Install the dependencies.
+        run: cd starter/frontend && npm ci
+       
+      - name: Run the tests.
+        run: cd starter/frontend/ && npm run test
+
+
+  build_job:
+    needs: [lint_job, test_job]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{secrets.AWS_SESSION_TOKEN}}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+  
+        - name: Build and push to ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: fronted
+          IMAGE_TAG: ${{ github.sha }}
+
+
+        - name: Build image
+          run: docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+
+        - name: Push to ECR
+          run: docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+    
+        - name: Configure kubectl
+          run: aws eks update-kubeconfig --name cluster --region us-east-1
+  
+
+          -name: Set the image tag to the newer version
+          run: cd starter/frontend/k8s && kustomize edit set image frontend=786913781168.dkr.ecr.us-east-1.amazonaws.com/frontend:${GITHUB_SHA}
+          
+
+        - name: Apply the Kubernetes manifests
+          run: kustomize build | kubectl apply -f 
+
