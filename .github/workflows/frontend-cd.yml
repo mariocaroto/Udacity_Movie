@@ -79,28 +79,28 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
   
-        - name: Build and push to ECR
+      #- name: Build and push to ECR
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: fronted
           IMAGE_TAG: ${{ github.sha }}
 
 
-        - name: Build image
-          run: docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+      - name: Build image
+        run: docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
 
-        - name: Push to ECR
-          run: docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+      - name: Push to ECR
+        run: docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
 
     
-        - name: Configure kubectl
-          run: aws eks update-kubeconfig --name cluster --region us-east-1
+      - name: Configure kubectl
+        run: aws eks update-kubeconfig --name cluster --region us-east-1
   
 
-          -name: Set the image tag to the newer version
-          run: cd starter/frontend/k8s && kustomize edit set image frontend=786913781168.dkr.ecr.us-east-1.amazonaws.com/frontend:${GITHUB_SHA}
+      - name: Set the image tag to the newer version
+        run: cd starter/frontend/k8s && kustomize edit set image frontend=786913781168.dkr.ecr.us-east-1.amazonaws.com/frontend:${GITHUB_SHA}
           
 
-        - name: Apply the Kubernetes manifests
-          run: kustomize build | kubectl apply -f 
+      - name: Apply the Kubernetes manifests
+        run: kustomize build | kubectl apply -f 
 

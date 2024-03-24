@@ -52,7 +52,7 @@ jobs:
       - name: Install dependencies
         run: cd starter/backend && pipenv install
 
-        - name: Configure AWS credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -64,7 +64,7 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
   
-      - name: Build and push image to ECR
+      # - name: Build and push image to ECR
         env:
           REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           REPOSITORY: backend
